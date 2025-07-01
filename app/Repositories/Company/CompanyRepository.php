@@ -55,9 +55,9 @@ class CompanyRepository extends AbstractRepository implements CompanyRepositoryI
     /**
      * @return mixed
      */
-    public function searchByActivity(): mixed
+    public function searchByActivityTitle($query): mixed
     {
-        $query = Activity::whereLike('title', 'Автомобили')
+        $query = Activity::whereLike('title', "$query%")
             ->unionAll(
                 Activity::select('activities.*')
                     ->join('cte', 'cte.id', '=', 'activities.activity_id')
@@ -65,8 +65,7 @@ class CompanyRepository extends AbstractRepository implements CompanyRepositoryI
         $result = Activity::from('cte')->withRecursiveExpression('cte', $query)
             ->select(['companies.id', 'cte.id as activity_id', 'cte.title', 'companies.title as company'])
             ->join('company_activity', 'cte.id', '=', 'company_activity.activity_id')
-            ->join('companies', 'companies.id', '=', 'company_activity.company_id')
-        ;
+            ->join('companies', 'companies.id', '=', 'company_activity.company_id');
 
         return $result->get()->toArray();
     }
@@ -91,5 +90,53 @@ class CompanyRepository extends AbstractRepository implements CompanyRepositoryI
                 $longitude,
                 $latitude,
             ]);
+    }
+
+    /**
+     * @param int $activityId
+     * @return mixed
+     */
+    public function getByActivity(int $activityId): mixed
+    {
+        return $this->getBuilder()
+            ->select('companies.*')
+            ->join('company_activity', 'companies.id', '=', 'company_activity.company_id')
+            ->where('company_activity.id', $activityId)
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * @param int $companyId
+     * @return mixed
+     */
+    public function getOne(int $companyId): mixed
+    {
+        return $this->getBuilder()->find($companyId)
+            ->first()
+            ->toArray();
+    }
+
+    /**
+     * @param int $buildingId
+     * @return mixed
+     */
+    public function getByBuilding(int $buildingId): mixed
+    {
+        return $this->getBuilder()
+            ->where('building_id', '=', $buildingId)
+            ->get();
+    }
+
+
+    /**
+     * @param int $companyName
+     * @return mixed
+     */
+    public function searchByName(int $companyName): mixed
+    {
+        return $this->getBuilder()
+            ->whereLike('title', "$companyName%")
+            ->get();
     }
 }
